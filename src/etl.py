@@ -28,7 +28,7 @@ def extract() -> pd.DataFrame:
     df["latitude"] = df["latitude"] / 100000
     df["longitude"] = df["longitude"] / 100000
     for c in MAJ_COLS:
-        df[c] = pd.to_datetime(df[c], utc=True)
+        df[c] = (pd.to_datetime(df[c], utc=True).dt.tz_localize(None).dt.tz_localize("Europe/Paris", ambiguous="NaT",nonexistent="shift_forward").dt.tz_convert("UTC"))
         df["date_collecte"] = pd.Timestamp.now(tz="UTC")
     return df
 
