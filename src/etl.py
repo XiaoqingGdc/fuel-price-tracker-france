@@ -29,7 +29,7 @@ def extract() -> pd.DataFrame:
     df["longitude"] = df["longitude"] / 100000
     for c in MAJ_COLS:
         df[c] = pd.to_datetime(df[c], utc=True)
-    df["date_collecte"] = pd.Timestamp.now(tz="Europe/Paris").tz_localize(None)
+        df["date_collecte"] = pd.Timestamp.now(tz="UTC")
     return df
 
 
