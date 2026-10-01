@@ -194,7 +194,7 @@ L'identifiant de chaque station commence par son code postal. Pour les rares sta
 
 ---
 
-## 👩‍💻 Auteure
+## 👩‍💻 Autrice
 
 **Xiaoqing ZHOU GRANDCOING** · 
 
