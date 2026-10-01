@@ -196,7 +196,7 @@ L'identifiant de chaque station commence par son code postal. Pour les rares sta
 
 ## 👩‍💻 Auteure
 
-**Xiaoqing ZHOU GRANDCOING** · Data Analyst
+**Xiaoqing ZHOU GRANDCOING** · 
 
 Projet personnel, né du prolongement d'un cas d'étude réalisé en formation : j'ai voulu passer d'une **analyse ponctuelle** à un **outil automatisé et utilisable au quotidien**.
 
