@@ -186,11 +186,11 @@ L'identifiant de chaque station commence par son code postal. Pour les rares sta
 
 ## 🛣️ Évolutions possibles
 
+- [x] 🧪 Tests unitaires (pytest) et contrôles qualité bloquants exécutés en CI avant chaque chargement
 - [ ] 📮 Utiliser la base officielle des codes postaux pour le centre de recherche
 - [ ] 🛣️ Afficher ou filtrer les stations d'autoroute
 - [ ] 📈 Ajouter une page d'évolution des prix à partir de la table `historique`
 - [ ] 🔐 Remplacer la clé JSON par **Workload Identity Federation** (authentification sans clé longue durée)
-- [ ] 🧪 Ajouter des tests unitaires sur les fonctions de transformation
 
 ---
 
@@ -200,7 +200,7 @@ L'identifiant de chaque station commence par son code postal. Pour les rares sta
 
 Projet personnel, né du prolongement d'un cas d'étude réalisé en formation : j'ai voulu passer d'une **analyse ponctuelle** à un **outil automatisé et utilisable au quotidien**.
 
-🔗 [LinkedIn](https://www.linkedin.com/in/xiaoqingzhougrandcoing) · 💻 [GitHub](https://github.com/XiaoqingGdc)
+🔗 [LinkedIn](https://www.linkedin.com/in/xiaoqingzhougrandcoing) · 💻 [Portefolio](XiaoqingGdc.github.io)
 
 ---
 
