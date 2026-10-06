@@ -10,7 +10,7 @@ on:
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # version figée (ubuntu-latest passe à Ubuntu 26 le 19/10/2026)
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -22,7 +22,7 @@ jobs:
   etl:
     needs: tests            # l'ETL ne tourne que si tous les tests passent
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
