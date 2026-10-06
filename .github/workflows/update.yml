@@ -4,9 +4,24 @@ on:
   schedule:
     - cron: "17 * * * *"   # toutes les heures, à HH:17 (UTC)
   workflow_dispatch:        # bouton pour lancer à la main
+  push:                     # tests à chaque modification du code
+    branches: [main]
+  pull_request:
 
 jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pytest
+      - run: pytest -v
+
   etl:
+    needs: tests            # l'ETL ne tourne que si tous les tests passent
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -14,6 +29,6 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python src/etl.py
+      - run: python src/etl.py   # contrôles qualité intégrés : stoppe avant chargement si anomalie
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}

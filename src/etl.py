@@ -3,8 +3,6 @@ import json
 import os
 
 import pandas as pd
-from google.cloud import bigquery
-from google.oauth2 import service_account
 
 PROJECT_ID = "fuel-price-tracker-fr"
 DATASET = "fuel_prices"
@@ -20,17 +18,68 @@ URL = ("https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/"
        "prix-des-carburants-en-france-flux-instantane-v2/exports/csv"
        "?delimiter=%3B&select=" + ",".join(COLS))
 
+# Seuils des contrôles qualité
+NB_STATIONS_MIN = 5000          # ~9 800 stations attendues
+PRIX_MIN, PRIX_MAX = 0.5, 3.5   # €/L plausibles
+LAT_MIN, LAT_MAX = -22.0, 52.0  # métropole + outre-mer
+LON_MIN, LON_MAX = -62.0, 56.0
+
+
+class DataQualityError(Exception):
+    """Levée quand un contrôle qualité échoue : rien n'est chargé dans BigQuery."""
+
 
 def extract() -> pd.DataFrame:
-    """Télécharge le flux instantané et nettoie les types."""
-    df = pd.read_csv(URL, sep=";", encoding="utf-8-sig",
-                     dtype={"id": str, "cp": str})
+    """Télécharge le flux instantané."""
+    return pd.read_csv(URL, sep=";", encoding="utf-8-sig",
+                       dtype={"id": str, "cp": str})
+
+
+def clean(df: pd.DataFrame) -> pd.DataFrame:
+    """Nettoie les types : coordonnées et fuseau horaire."""
+    df = df.copy()
     df["latitude"] = df["latitude"] / 100000
     df["longitude"] = df["longitude"] / 100000
+    # La source annonce UTC (+00:00) mais les heures sont en réalité celles de Paris
     for c in MAJ_COLS:
-        df[c] = (pd.to_datetime(df[c], utc=True).dt.tz_localize(None).dt.tz_localize("Europe/Paris", ambiguous="NaT",nonexistent="shift_forward").dt.tz_convert("UTC"))
-        df["date_collecte"] = pd.Timestamp.now(tz="UTC")
+        df[c] = (pd.to_datetime(df[c], utc=True)
+                   .dt.tz_localize(None)
+                   .dt.tz_localize("Europe/Paris", ambiguous="NaT",
+                                   nonexistent="shift_forward")
+                   .dt.tz_convert("UTC"))
+    df["date_collecte"] = pd.Timestamp.now(tz="UTC")
     return df
+
+
+def check_quality(df: pd.DataFrame) -> None:
+    """Contrôles qualité avant chargement. Lève DataQualityError en cas d'anomalie."""
+    erreurs = []
+
+    if len(df) < NB_STATIONS_MIN:
+        erreurs.append(f"Trop peu de stations : {len(df)} < {NB_STATIONS_MIN}")
+
+    if df["id"].duplicated().any():
+        erreurs.append(f"{df['id'].duplicated().sum()} identifiants de station en double")
+
+    prix = df[PRIX_COLS].stack()
+    # Les prix à 0 sont déjà écartés par transform() ; on contrôle les prix réels
+    hors_bornes = prix[(prix > 0) & ((prix < PRIX_MIN) | (prix > PRIX_MAX))]
+    if len(hors_bornes):
+        erreurs.append(f"{len(hors_bornes)} prix hors bornes [{PRIX_MIN}; {PRIX_MAX}] €/L")
+
+    coords = df[["latitude", "longitude"]].dropna()
+    coords_ko = (~coords["latitude"].between(LAT_MIN, LAT_MAX)
+                 | ~coords["longitude"].between(LON_MIN, LON_MAX))
+    if coords_ko.sum():
+        erreurs.append(f"{coords_ko.sum()} stations avec des coordonnées hors France")
+
+    # Une mise à jour ne peut pas être postérieure à la collecte (bug de fuseau horaire)
+    maj_max = df[MAJ_COLS].max().max()
+    if pd.notna(maj_max) and maj_max > df["date_collecte"].iloc[0]:
+        erreurs.append(f"Mise à jour dans le futur : {maj_max} > date de collecte")
+
+    if erreurs:
+        raise DataQualityError(" | ".join(erreurs))
 
 
 def transform(df: pd.DataFrame) -> pd.DataFrame:
@@ -51,6 +100,9 @@ def transform(df: pd.DataFrame) -> pd.DataFrame:
 
 def load(df: pd.DataFrame, agg: pd.DataFrame) -> None:
     """Écrit le snapshot (écrasé) et l'historique (ajouté) dans BigQuery."""
+    from google.cloud import bigquery
+    from google.oauth2 import service_account
+
     creds = service_account.Credentials.from_service_account_info(
         json.loads(os.environ["GCP_SA_KEY"]))
     client = bigquery.Client(project=PROJECT_ID, credentials=creds)
@@ -66,7 +118,8 @@ def load(df: pd.DataFrame, agg: pd.DataFrame) -> None:
 
 
 if __name__ == "__main__":
-    df = extract()
+    df = clean(extract())
+    check_quality(df)  # stoppe le pipeline avant tout chargement si anomalie
     agg = transform(df)
     load(df, agg)
     print(f"OK : {len(df)} stations, {len(agg)} lignes ajoutées à historique")
