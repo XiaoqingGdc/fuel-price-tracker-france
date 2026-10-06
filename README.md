@@ -78,9 +78,11 @@ flowchart LR
 ```
 fuel-price-tracker-france/
 ├── .github/workflows/
-│   └── update.yml        # ⏰ planification horaire
+│   └── update.yml        # ⏰ tests puis ETL, planification horaire
 ├── src/
-│   └── etl.py            # ⚙️ pipeline Extract → Transform → Load
+│   └── etl.py            # ⚙️ pipeline Extract → Transform → Load + contrôles qualité
+├── tests/
+│   └── test_etl.py       # 🧪 tests unitaires (pytest)
 ├── docs/
 │   └── dashboard.png     # 🖼️ capture du dashboard
 ├── requirements.txt      # 📦 dépendances Python
